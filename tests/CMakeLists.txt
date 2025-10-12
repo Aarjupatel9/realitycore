@@ -22,6 +22,7 @@ add_executable(engine_core_tests
     core/test_collision_system.cpp
     core/test_object_pool.cpp
     core/test_world_multistep.cpp
+    core/test_rigidbody_extras.cpp
 )
 
 # Allow including engine internal headers for now

@@ -68,6 +68,15 @@ if(BUILD_LAUNCHER)
     add_subdirectory(launcher)
 endif()
 
+# Coverage instrumentation (GCC/Clang only)
+option(ENGINE_ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+if(ENGINE_ENABLE_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-O0 -g --coverage)
+        add_link_options(--coverage)
+    endif()
+endif()
+
 # Tests
 option(ENGINE_BUILD_TESTS "Build unit tests" ON)
 if(ENGINE_BUILD_TESTS)

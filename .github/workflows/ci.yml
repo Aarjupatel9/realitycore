@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, tests/**, feature/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ git python3-pip
+          pip3 install gcovr
+
+      - name: Configure and build tests with coverage
+        run: |
+          cmake -S . -B build -DENGINE_BUILD_TESTS=ON -DENGINE_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build --target engine_core_tests -j
+
+      - name: Run tests
+        run: |
+          ctest --test-dir build -j --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          mkdir -p build/coverage
+          gcovr -r . build \
+            --xml build/coverage/coverage.xml \
+            --html-details build/coverage/index.html \
+            --exclude 'engine/src/rendering/.*' \
+            --exclude 'demos/.*' \
+            --exclude 'assets/.*' \
+            --exclude 'backup/.*' \
+            --exclude 'launcher/.*' \
+            --print-summary
+
+      - name: Enforce coverage threshold (90%)
+        run: |
+          python3 - <<'PY'
+import xml.etree.ElementTree as ET
+root = ET.parse('build/coverage/coverage.xml').getroot()
+line_rate = float(root.attrib.get('line-rate', 0.0)) * 100.0
+print(f"Coverage: {line_rate:.2f}%")
+import sys
+sys.exit(0 if line_rate >= 90.0 else 2)
+PY
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: build/coverage
