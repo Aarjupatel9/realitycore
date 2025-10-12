@@ -68,6 +68,14 @@ if(BUILD_LAUNCHER)
     add_subdirectory(launcher)
 endif()
 
+# Tests
+option(ENGINE_BUILD_TESTS "Build unit tests" ON)
+if(ENGINE_BUILD_TESTS)
+    include(CTest)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # Print build configuration
 message(STATUS "=== RealityCore Physics Engine Build Configuration ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

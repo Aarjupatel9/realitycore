@@ -22,6 +22,8 @@ BUILD_TARGET=""             # Specific target to build
 SHOW_TIMING=false
 SHOW_HELP=false
 VERBOSE=false
+TESTS_ONLY=false
+RUN_TESTS=false
 
 # Build info file
 BUILD_INFO_FILE="build/.build_info"
@@ -76,6 +78,8 @@ show_help() {
     echo ""
     echo "BUILD OPTIONS:"
     echo "  --target <name>     Build specific demo only (e.g., BallCollision2)"
+    echo "  --tests-only        Build unit tests target only"
+    echo "  --run-tests         Run tests after building (implies tests are enabled)"
     echo "  --debug             Debug build with symbols"
     echo "  --release           Release build (default)"
     echo ""
@@ -88,9 +92,11 @@ show_help() {
     echo "  ./build.sh                          # Smart incremental build"
     echo "  ./build.sh --soft --timing          # Fast incremental with timing"
     echo "  ./build.sh --hard                   # Full rebuild everything"
-    echo "  ./build.sh --target BallCollision2  # Build specific demo"
-    echo "  ./build.sh --deps-only              # Build dependencies only"
-    echo "  ./build.sh --project-only --debug   # Quick project build (debug)"
+    echo "  ./build.sh --target BallCollision2    # Build specific demo"
+    echo "  ./build.sh --deps-only                # Build dependencies only"
+    echo "  ./build.sh --project-only --debug     # Quick project build (debug)"
+    echo "  ./build.sh --tests-only               # Build tests target only"
+    echo "  ./build.sh --tests-only --run-tests   # Build and run tests"
     echo ""
 }
 
@@ -144,6 +150,14 @@ parse_arguments() {
                 ;;
             --verbose)
                 VERBOSE=true
+                shift
+                ;;
+            --tests-only)
+                TESTS_ONLY=true
+                shift
+                ;;
+            --run-tests)
+                RUN_TESTS=true
                 shift
                 ;;
             --help)
@@ -697,6 +711,38 @@ build_project() {
     print_success "RealityCore project built successfully!"
 }
 
+# Build tests only (and optionally run them)
+build_tests() {
+    print_status "Building unit tests..."
+    local start_time=$(get_timestamp)
+
+    # Ensure tests are configured/enabled
+    print_status "Configuring CMake for tests..."
+    cmake -S . -B build -DENGINE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=$BUILD_CONFIG
+
+    local cpu_count=$(get_cpu_count)
+    print_verbose "Using $cpu_count parallel jobs"
+
+    if [[ "$OS" == "windows" ]] && command -v cl &> /dev/null; then
+        cmake --build build --config $BUILD_CONFIG --target engine_core_tests -- -maxcpucount:$cpu_count
+    else
+        cmake --build build --target engine_core_tests -j$cpu_count
+    fi
+
+    if [ "$RUN_TESTS" = true ]; then
+        print_status "Running unit tests..."
+        ctest --test-dir build -j --output-on-failure || {
+            print_error "Some tests failed"
+            exit 1
+        }
+    fi
+
+    local end_time=$(get_timestamp)
+    local duration=$(calculate_duration $start_time $end_time)
+    print_timing "Tests built in: $duration"
+    print_success "Unit tests built successfully!"
+}
+
 # Setup build environment
 setup_build_environment() {
     # Create build directory if it doesn't exist
@@ -727,6 +773,21 @@ setup_build_environment() {
 # Main build logic
 execute_build() {
     local overall_start_time=$(get_timestamp)
+
+    # Fast path for tests-only mode
+    if [ "$TESTS_ONLY" = true ]; then
+        print_status "Tests-only mode (--tests-only)"
+        setup_build_environment
+        if ! check_dependencies; then
+            build_dependencies
+        fi
+        build_tests
+        save_build_info
+        local overall_end=$(get_timestamp)
+        local total=$(calculate_duration $overall_start_time $overall_end)
+        print_timing "Total tests build time: $total"
+        return 0
+    fi
     
     case $BUILD_MODE in
         "hard")
@@ -875,9 +936,18 @@ main() {
     check_prerequisites
     configure_git_for_large_repos
     execute_build
-    find_executable
-    
-    print_success "Build process completed successfully!"
+
+    if [ "$TESTS_ONLY" = true ]; then
+        # In tests-only mode, skip demo discovery
+        if [ "$RUN_TESTS" = false ]; then
+            print_status "You can run tests with: ctest --test-dir build -j --output-on-failure"
+            print_status "Or run the binary directly: build/bin/engine_core_tests"
+        fi
+        print_success "Tests flow completed successfully!"
+    else
+        find_executable
+        print_success "Build process completed successfully!"
+    fi
 }
 
 # Run main function
