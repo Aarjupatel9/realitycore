@@ -1,4 +1,5 @@
 #include "BallCollision2Scene.h"
+#include "BallCollision2CameraController.h"
 #include <iostream>
 
 BallCollision2Scene::BallCollision2Scene() {
@@ -15,14 +16,12 @@ bool BallCollision2Scene::initialize(GLFWwindow* window) {
         return false;
     }
     
-    // Set camera position for optimal ground visibility
-    // Position camera directly above the center for perfect top-down view
-    m_camera->setPosition(glm::vec3(0.0f, 8.0f, 0.0f));  // Directly above center, higher up
-    m_camera->setYaw(0.0f);     // Look straight ahead (towards -Z)
-    m_camera->setPitch(-85.0f); // Look almost straight down (85 degrees down)
+    // Store references to key objects for camera controller
+    m_ball1 = nullptr;
+    m_ball2 = nullptr;
+    m_ground = nullptr;
     
     std::cout << "BallCollision2 Scene initialized successfully!" << std::endl;
-    std::cout << "Camera positioned at (0, 8, 0) looking straight down at ground" << std::endl;
     return true;
 }
 
@@ -37,6 +36,9 @@ void BallCollision2Scene::initializeObjects() {
               glm::vec3(0.3f, 0.3f, 0.3f),      // gray color
               true,                              // enable physics
               0.0f);                             // mass = 0 (static, won't fall)
+    
+    // Store reference to ground (first object created)
+    m_ground = m_objects.empty() ? nullptr : m_objects[0].physicsBody.get();
     
     // Create boundary walls around the ground perimeter
     // Wall height: 0.3m, Wall width: 0.3m
@@ -93,6 +95,9 @@ void BallCollision2Scene::initializeObjects() {
                  1.0f,                           // mass = 1.0 (dynamic)
                  randomVelocity);                // initial velocity: random direction
     
+    // Store reference to first ball (6th object: ground + 4 walls + 1st ball)
+    m_ball1 = m_objects.size() >= 6 ? m_objects[5].physicsBody.get() : nullptr;
+    
     // Create second ball with different angle for ball-to-ball collisions
     float secondAngle = 200.0f; // Different angle for interesting collisions
     float secondRadians = glm::radians(secondAngle);
@@ -108,6 +113,9 @@ void BallCollision2Scene::initializeObjects() {
                  true,                           // enable physics
                  1.0f,                           // mass = 1.0 (dynamic)
                  secondVelocity);                // initial velocity: different random direction
+    
+    // Store reference to second ball (7th object: ground + 4 walls + 2 balls)
+    m_ball2 = m_objects.size() >= 7 ? m_objects[6].physicsBody.get() : nullptr;
     
     // Make all objects frictionless with perfect bounce for endless ball movement
     for (auto& object : m_objects) {
@@ -141,6 +149,12 @@ void BallCollision2Scene::initializeObjects() {
     std::cout << "Ball 2 velocity: (" << secondVelocity.x << ", " << secondVelocity.y << ", " << secondVelocity.z << ")" << std::endl;
     std::cout << "All objects: friction=0.0, rolling=0.0, restitution=1.0 (perfectly elastic environment)" << std::endl;
     std::cout << "Ball settings: never sleeps, reduced collision margin for precision" << std::endl;
+    
+    // Setup camera controller with multiple camera views
+    std::cout << "Setting up camera controller..." << std::endl;
+    auto cameraController = std::make_unique<BallCollision2CameraController>(m_ball1, m_ball2, m_ground);
+    setCameraController(std::move(cameraController));
+    std::cout << "Camera controller setup complete. Use Ctrl+C and Ctrl+X to switch cameras." << std::endl;
 }
 
 void BallCollision2Scene::update(float deltaTime) {

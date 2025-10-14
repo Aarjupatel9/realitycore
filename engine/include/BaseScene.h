@@ -13,6 +13,7 @@ class Shader;
 class Mesh;
 class RigidBody3D;
 class FPSRenderer;
+class CameraController;
 
 // Include headers for complete type definitions (needed for unique_ptr destructors)
 #include "bullet/BulletWorld.h"
@@ -22,6 +23,7 @@ class FPSRenderer;
 #include "../src/rendering/Mesh.h"
 #include "../src/core/RigidBody3D.h"
 #include "../src/rendering/FPSRenderer.h"
+#include "rendering/camera/CameraController.h"
 
 /**
  * BaseScene - Base class for all physics scenes
@@ -51,6 +53,16 @@ public:
     virtual void renderFPS() { if (m_fpsRenderer) m_fpsRenderer->render(getViewMatrix(), getProjectionMatrix()); }
     virtual void toggleFPSDisplay() { if (m_fpsRenderer) m_fpsRenderer->toggleDisplay(); }
     virtual bool isFPSDisplayEnabled() const { return m_fpsRenderer ? m_fpsRenderer->isDisplayEnabled() : false; }
+    
+    // Camera controller support
+    virtual void setCameraController(std::unique_ptr<CameraController> controller);
+    virtual CameraController* getCameraController() const { return m_cameraController.get(); }
+    virtual void switchToNextCamera();
+    virtual void switchToPreviousCamera();
+    virtual const std::string& getActiveCameraName() const;
+    
+    // Static callback for camera switching
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 protected:
     // Core components
@@ -58,6 +70,7 @@ protected:
     std::unique_ptr<Camera> m_camera;
     std::unique_ptr<Shader> m_shader;
     std::unique_ptr<FPSRenderer> m_fpsRenderer;
+    std::unique_ptr<CameraController> m_cameraController;
     
     // Meshes
     std::shared_ptr<Mesh> m_boxMesh;

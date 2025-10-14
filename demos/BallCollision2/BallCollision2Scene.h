@@ -2,6 +2,9 @@
 
 #include "BaseScene.h"
 
+// Forward declaration
+class BulletRigidBody;
+
 class BallCollision2Scene : public BaseScene {
 public:
     BallCollision2Scene();
@@ -16,4 +19,10 @@ public:
     
     const char* getName() const override { return "BallCollision2 Scene"; }
     const char* getDescription() const override { return "Generated BallCollision2 scene"; }
+
+private:
+    // Object references for camera controller
+    BulletRigidBody* m_ball1;
+    BulletRigidBody* m_ball2;
+    BulletRigidBody* m_ground;
 };

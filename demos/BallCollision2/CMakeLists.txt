@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.10)
 add_executable(BallCollision2
     main.cpp
     BallCollision2Scene.cpp
+    BallCollision2CameraController.cpp
 )
 
 # Link against the RealityCore library

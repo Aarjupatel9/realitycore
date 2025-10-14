@@ -21,6 +21,7 @@ Camera::Camera()
 
 void Camera::update(GLFWwindow* window, float deltaTime) {
     if (!m_controlsEnabled) return;
+    if (!window) return; // Don't process input if window is NULL
     
     glm::vec3 front = computeFront();
     glm::vec3 right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));

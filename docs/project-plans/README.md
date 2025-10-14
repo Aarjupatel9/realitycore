@@ -17,6 +17,12 @@ This folder contains all project planning documents, implementation roadmaps, an
   - Configuration details and dependencies
   - **Status**: Phase 3 Complete, Ready for Phase 4 ✅
 
+- **[MULTI_CAMERA_SYSTEM_PLAN.md](./MULTI_CAMERA_SYSTEM_PLAN.md)**
+  - Comprehensive multi-camera system implementation plan
+  - Support for Fixed, Follow, Attached, and Orbit cameras
+  - Runtime camera switching and scene-specific configurations
+  - **Status**: 🚧 In Progress - Active Development
+
 ### 📝 Task Tracking
 - **[todo.txt](./todo.txt)**
   - Active task list with completion status
@@ -32,6 +38,7 @@ This folder contains all project planning documents, implementation roadmaps, an
 - **Phase 3**: Shape Integration (Box, Sphere, Plane collision shapes)
 
 ### 🔄 Current Phase
+- **Multi-Camera System**: Implementing comprehensive camera management system
 - **Phase 4**: Advanced Features (CCD, collision callbacks, advanced shapes)
 
 ### 📋 Upcoming Phases

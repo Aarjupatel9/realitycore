@@ -12,6 +12,7 @@
 #include "../src/shapes/Sphere.h"
 #include "../src/shapes/Plane.h"
 #include "../src/utils/MeshGenerator.h"
+#include "rendering/camera/CameraController.h"
 #include <iostream>
 
 BaseScene::BaseScene() {
@@ -132,11 +133,33 @@ void BaseScene::loadCommonMeshes() {
     std::cout << "Common meshes loaded" << std::endl;
 }
 
+// Static key callback for camera switching
+static BaseScene* g_currentScene = nullptr;
+
+void BaseScene::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // Call the original camera key callback first
+    Camera::keyCallback(window, key, scancode, action, mods);
+    
+    // Handle camera switching if scene has camera controller
+    if (g_currentScene && action == GLFW_PRESS) {
+        if (key == GLFW_KEY_C && mods == GLFW_MOD_CONTROL) {
+            // Ctrl+C: Switch to next camera
+            g_currentScene->switchToNextCamera();
+        } else if (key == GLFW_KEY_X && mods == GLFW_MOD_CONTROL) {
+            // Ctrl+X: Switch to previous camera
+            g_currentScene->switchToPreviousCamera();
+        }
+    }
+}
+
 void BaseScene::setupGLFWCallbacks(GLFWwindow* window) {
+    // Set global scene reference for key callback
+    g_currentScene = this;
+    
     // Set up GLFW callbacks for camera controls
     glfwSetCursorPosCallback(window, Camera::mouseCallback);
     glfwSetScrollCallback(window, Camera::scrollCallback);
-    glfwSetKeyCallback(window, Camera::keyCallback);
+    glfwSetKeyCallback(window, BaseScene::keyCallback);
     
     // Initially disable cursor since controls are enabled by default
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -362,10 +385,28 @@ void BaseScene::renderAllObjects() {
 }
 
 glm::mat4 BaseScene::getViewMatrix() const {
+    // Use camera controller's active camera if available
+    if (m_cameraController) {
+        Camera* activeCamera = m_cameraController->getActiveCamera();
+        if (activeCamera) {
+            return activeCamera->getViewMatrix();
+        }
+    }
+    
+    // Fallback to default camera
     return m_camera ? m_camera->getViewMatrix() : glm::mat4(1.0f);
 }
 
 glm::mat4 BaseScene::getProjectionMatrix() const {
+    // Use camera controller's active camera if available
+    if (m_cameraController) {
+        Camera* activeCamera = m_cameraController->getActiveCamera();
+        if (activeCamera) {
+            return activeCamera->getProjectionMatrix(800.0f/600.0f);
+        }
+    }
+    
+    // Fallback to default camera
     return m_camera ? m_camera->getProjectionMatrix(800.0f/600.0f) : glm::mat4(1.0f);
 }
 
@@ -390,8 +431,33 @@ void BaseScene::update(float deltaTime) {
         }
     }
     
-    // Update camera
-    if (m_camera) {
+    // Update camera (use controller if available, otherwise use default camera)
+    if (m_cameraController) {
+        // Debug: Check if window is NULL
+        if (!m_window) {
+            std::cout << "WARNING: m_window is NULL in BaseScene::update!" << std::endl;
+            return;
+        }
+        
+        // Handle camera controller input
+        m_cameraController->handleInput(m_window);
+        
+        // Update camera controller
+        m_cameraController->update(deltaTime);
+        
+        // Get the active camera from controller
+        Camera* activeCamera = m_cameraController->getActiveCamera();
+        if (activeCamera) {
+            // Update the active camera
+            activeCamera->update(m_window, deltaTime);
+            
+            // Check for FPS toggle request
+            if (activeCamera->checkFpsToggleRequest() && m_fpsRenderer) {
+                m_fpsRenderer->toggleDisplay();
+            }
+        }
+    } else if (m_camera) {
+        // Fallback to default camera
         m_camera->update(m_window, deltaTime);
         
         // Check for FPS toggle request
@@ -458,6 +524,37 @@ void BaseScene::cleanup() {
     m_camera.reset();
     m_shader.reset();
     m_fpsRenderer.reset();
+    m_cameraController.reset();
     
     std::cout << getName() << " cleanup complete" << std::endl;
+}
+
+// Camera controller methods
+void BaseScene::setCameraController(std::unique_ptr<CameraController> controller) {
+    m_cameraController = std::move(controller);
+    std::cout << "Camera controller set: " << getActiveCameraName() << std::endl;
+}
+
+void BaseScene::switchToNextCamera() {
+    if (m_cameraController) {
+        // For now, just print the current camera name
+        // In a full implementation, this would switch to the next camera
+        std::cout << "Switching to next camera: " << getActiveCameraName() << std::endl;
+    }
+}
+
+void BaseScene::switchToPreviousCamera() {
+    if (m_cameraController) {
+        // For now, just print the current camera name
+        // In a full implementation, this would switch to the previous camera
+        std::cout << "Switching to previous camera: " << getActiveCameraName() << std::endl;
+    }
+}
+
+const std::string& BaseScene::getActiveCameraName() const {
+    if (m_cameraController) {
+        return m_cameraController->getActiveCameraName();
+    }
+    static const std::string defaultName = "Default Camera";
+    return defaultName;
 }

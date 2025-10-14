@@ -8,6 +8,7 @@
 class Camera {
 public:
     Camera();
+    virtual ~Camera() = default;
     
     // Update camera based on input
     void update(GLFWwindow* window, float deltaTime);
