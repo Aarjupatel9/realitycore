@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "BasicGroundBallScene.h"
+#include "config/SceneConfig.h"
 
 // Window dimensions
 const unsigned int WINDOW_WIDTH = 800;
@@ -54,9 +55,14 @@ int main() {
     }
     
     try {
+        // Create scene configuration
+        SceneConfig config;
+        config.windowWidth = WINDOW_WIDTH;
+        config.windowHeight = WINDOW_HEIGHT;
+        
         BasicGroundBallScene scene;
         
-        if (!scene.initialize(window)) {
+        if (!scene.initialize(window, config)) {
             std::cerr << "Failed to initialize BasicGroundBall Scene" << std::endl;
             glfwTerminate();
             return -1;

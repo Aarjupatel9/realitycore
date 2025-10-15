@@ -20,7 +20,7 @@ public:
     virtual ~TerrainScene() = default;
     
     // BaseScene interface
-    bool initialize(GLFWwindow* window) override;
+    bool initialize(GLFWwindow* window, const SceneConfig& config) override;
     void update(float deltaTime) override;
     void render() override;
     void cleanup() override;

@@ -7,12 +7,12 @@ BallCollision2Scene::BallCollision2Scene() {
     std::cout << "Starting BallCollision2 Scene..." << std::endl;
 }
 
-bool BallCollision2Scene::initialize(GLFWwindow* window) {
+bool BallCollision2Scene::initialize(GLFWwindow* window, const SceneConfig& config) {
     std::cout << "Initializing BallCollision2 Scene..." << std::endl;
     
     // Call base class initialization (sets up camera, shaders, etc.)
     // Note: BaseScene::initialize() already calls initializeObjects()
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

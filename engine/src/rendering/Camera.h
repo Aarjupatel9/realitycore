@@ -4,10 +4,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 
+// Forward declaration
+struct CameraConfig;
+
 // Free-fly camera with mouse look and keyboard movement
 class Camera {
 public:
     Camera();
+    Camera(const CameraConfig& config);
     virtual ~Camera() = default;
     
     // Update camera based on input
@@ -61,9 +65,14 @@ private:
     float m_yaw;
     float m_pitch;
     float m_fov;
+    float m_nearPlane;
+    float m_farPlane;
     
     float m_moveSpeed;
     float m_mouseSensitivity;
+    float m_sprintMultiplier;
+    float m_minFOV;
+    float m_maxFOV;
     
     bool m_controlsEnabled;
     bool m_firstMouse;
@@ -72,6 +81,7 @@ private:
     double m_lastMouseY;
     
     glm::vec3 computeFront() const;
+    void initializeFromConfig(const CameraConfig& config);
     
     // Static instance for callbacks
     static Camera* s_instance;

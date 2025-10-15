@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "BasicDemoScene.h"
+#include "config/SceneConfig.h"
 
 // Window dimensions
 const unsigned int WINDOW_WIDTH = 800;
@@ -59,9 +60,14 @@ int main() {
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
     
+    // Create scene configuration
+    SceneConfig config;
+    config.windowWidth = WINDOW_WIDTH;
+    config.windowHeight = WINDOW_HEIGHT;
+    
     // Create and initialize scene
     auto scene = std::make_unique<BasicDemoScene>();
-    if (!scene->initialize(window)) {
+    if (!scene->initialize(window, config)) {
         std::cerr << "Failed to initialize Basic Demo Scene" << std::endl;
         glfwTerminate();
         return -1;

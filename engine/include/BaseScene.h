@@ -14,6 +14,7 @@ class Mesh;
 class RigidBody3D;
 class FPSRenderer;
 class CameraController;
+struct SceneConfig;
 
 // Include headers for complete type definitions (needed for unique_ptr destructors)
 #include "bullet/BulletWorld.h"
@@ -24,6 +25,7 @@ class CameraController;
 #include "../src/core/RigidBody3D.h"
 #include "../src/rendering/FPSRenderer.h"
 #include "rendering/camera/CameraController.h"
+#include "config/SceneConfig.h"
 
 /**
  * BaseScene - Base class for all physics scenes
@@ -44,7 +46,7 @@ public:
     virtual const char* getName() const = 0;
     virtual const char* getDescription() const = 0;
     
-    virtual bool initialize(GLFWwindow* window) = 0;
+    virtual bool initialize(GLFWwindow* window, const SceneConfig& config) = 0;
     virtual void update(float deltaTime) = 0;
     virtual void render() = 0;
     virtual void cleanup() = 0;
@@ -63,8 +65,21 @@ public:
     
     // Static callback for camera switching
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    
+    // Configuration access
+    const SceneConfig& getConfig() const { return m_config; }
+    SceneConfig& getConfig() { return m_config; }
+    
+    // Setter functions for runtime changes
+    void setBackgroundColor(const glm::vec3& color);
+    void setLightPosition(const glm::vec3& pos);
+    void setLightColor(const glm::vec3& color);
+    void setAmbientIntensity(float intensity);
 
 protected:
+    // Scene configuration
+    SceneConfig m_config;
+    
     // Core components
     std::unique_ptr<BulletWorld> m_bulletWorld;
     std::unique_ptr<Camera> m_camera;
@@ -113,7 +128,7 @@ protected:
     glm::mat4 getProjectionMatrix() const;
     
     // Helper functions
-    void setupCommonComponents(GLFWwindow* window);
+    void setupCommonComponents(GLFWwindow* window, const SceneConfig& config);
     void setupGLFWCallbacks(GLFWwindow* window);
     void loadCommonMeshes();
     

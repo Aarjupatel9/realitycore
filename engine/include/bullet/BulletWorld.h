@@ -6,6 +6,9 @@
 #include <memory>
 #include <functional>
 
+// Forward declaration
+struct PhysicsConfig;
+
 /**
  * BulletWorld - Wrapper class for Bullet Physics world
  * 
@@ -37,10 +40,16 @@ private:
     
 public:
     /**
-     * Constructor
+     * Constructor with default gravity
      * @param gravity Gravity vector (default: Earth gravity -9.81 m/s²)
      */
     explicit BulletWorld(const glm::vec3& gravity = glm::vec3(0.0f, -9.81f, 0.0f));
+    
+    /**
+     * Constructor with full physics configuration
+     * @param config Physics configuration struct
+     */
+    explicit BulletWorld(const PhysicsConfig& config);
     
     /**
      * Destructor
@@ -108,6 +117,18 @@ public:
     void SetNumTasks(int numThreads);
     
     /**
+     * Set solver iterations (collision resolution quality)
+     * @param iterations Number of solver iterations (higher = more accurate)
+     */
+    void SetSolverIterations(int iterations);
+    
+    /**
+     * Set error reduction parameter (penetration correction stiffness)
+     * @param erp Error reduction parameter (0.0-1.0)
+     */
+    void SetERP(float erp);
+    
+    /**
      * Get the Bullet dynamics world (for advanced usage)
      * @return Pointer to btDiscreteDynamicsWorld
      */
@@ -132,6 +153,11 @@ private:
     void InitializeBulletComponents();
     
     /**
+     * Initialize with physics configuration
+     */
+    void InitializeWithConfig(const PhysicsConfig& config);
+    
+    /**
      * Cleanup Bullet Physics components
      */
     void CleanupBulletComponents();
@@ -140,4 +166,8 @@ private:
      * Handle collision detection and callbacks
      */
     void HandleCollisions();
+    
+    // Store config for debug interval
+    int m_debugPrintInterval = 0;
+    int m_updateCount = 0;
 };

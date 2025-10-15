@@ -6,11 +6,11 @@ BasicGroundBallScene::BasicGroundBallScene() {
     std::cout << "Starting BasicGroundBall Scene..." << std::endl;
 }
 
-bool BasicGroundBallScene::initialize(GLFWwindow* window) {
+bool BasicGroundBallScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     std::cout << "Initializing BasicGroundBall Scene..." << std::endl;
     
     // Call base class initialization (sets up camera, shaders, etc.)
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

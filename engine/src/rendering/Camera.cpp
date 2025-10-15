@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "config/CameraConfig.h"
 #include <iostream>
 
 Camera* Camera::s_instance = nullptr;
@@ -8,8 +9,13 @@ Camera::Camera()
     , m_yaw(-90.0f)
     , m_pitch(0.0f)
     , m_fov(45.0f)
+    , m_nearPlane(0.1f)
+    , m_farPlane(100.0f)
     , m_moveSpeed(3.0f)
     , m_mouseSensitivity(0.1f)
+    , m_sprintMultiplier(2.5f)
+    , m_minFOV(20.0f)
+    , m_maxFOV(90.0f)
     , m_controlsEnabled(true)
     , m_firstMouse(true)
     , m_fpsToggleRequested(false)
@@ -17,6 +23,42 @@ Camera::Camera()
     , m_lastMouseY(300.0)
 {
     s_instance = this;
+}
+
+Camera::Camera(const CameraConfig& config) 
+    : m_position(config.position)
+    , m_yaw(config.yaw)
+    , m_pitch(config.pitch)
+    , m_fov(config.fov)
+    , m_nearPlane(config.nearPlane)
+    , m_farPlane(config.farPlane)
+    , m_moveSpeed(config.moveSpeed)
+    , m_mouseSensitivity(config.mouseSensitivity)
+    , m_sprintMultiplier(config.sprintMultiplier)
+    , m_minFOV(config.minFOV)
+    , m_maxFOV(config.maxFOV)
+    , m_controlsEnabled(config.controlsEnabled)
+    , m_firstMouse(true)
+    , m_fpsToggleRequested(false)
+    , m_lastMouseX(400.0)
+    , m_lastMouseY(300.0)
+{
+    s_instance = this;
+}
+
+void Camera::initializeFromConfig(const CameraConfig& config) {
+    m_position = config.position;
+    m_yaw = config.yaw;
+    m_pitch = config.pitch;
+    m_fov = config.fov;
+    m_nearPlane = config.nearPlane;
+    m_farPlane = config.farPlane;
+    m_moveSpeed = config.moveSpeed;
+    m_mouseSensitivity = config.mouseSensitivity;
+    m_sprintMultiplier = config.sprintMultiplier;
+    m_minFOV = config.minFOV;
+    m_maxFOV = config.maxFOV;
+    m_controlsEnabled = config.controlsEnabled;
 }
 
 void Camera::update(GLFWwindow* window, float deltaTime) {
@@ -29,7 +71,7 @@ void Camera::update(GLFWwindow* window, float deltaTime) {
     
     float velocity = m_moveSpeed * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        velocity *= 2.5f; // Sprint
+        velocity *= m_sprintMultiplier; // Sprint
     }
     
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) m_position += front * velocity;
@@ -42,11 +84,11 @@ void Camera::update(GLFWwindow* window, float deltaTime) {
     // Zoom with +/- keys
     if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
         m_fov -= 50.0f * deltaTime;
-        if (m_fov < 20.0f) m_fov = 20.0f;
+        if (m_fov < m_minFOV) m_fov = m_minFOV;
     }
     if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
         m_fov += 50.0f * deltaTime;
-        if (m_fov > 90.0f) m_fov = 90.0f;
+        if (m_fov > m_maxFOV) m_fov = m_maxFOV;
     }
 }
 
@@ -56,7 +98,7 @@ glm::mat4 Camera::getViewMatrix() const {
 }
 
 glm::mat4 Camera::getProjectionMatrix(float aspectRatio) const {
-    return glm::perspective(glm::radians(m_fov), aspectRatio, 0.1f, 100.0f);
+    return glm::perspective(glm::radians(m_fov), aspectRatio, m_nearPlane, m_farPlane);
 }
 
 void Camera::setControlsEnabled(bool enabled) {
@@ -105,8 +147,8 @@ void Camera::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) 
     if (!s_instance || !s_instance->m_controlsEnabled) return;
     
     s_instance->m_fov -= static_cast<float>(yoffset) * 2.0f;
-    if (s_instance->m_fov < 20.0f) s_instance->m_fov = 20.0f;
-    if (s_instance->m_fov > 90.0f) s_instance->m_fov = 90.0f;
+    if (s_instance->m_fov < s_instance->m_minFOV) s_instance->m_fov = s_instance->m_minFOV;
+    if (s_instance->m_fov > s_instance->m_maxFOV) s_instance->m_fov = s_instance->m_maxFOV;
 }
 
 void Camera::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {

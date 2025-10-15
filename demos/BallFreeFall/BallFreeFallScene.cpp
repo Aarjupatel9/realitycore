@@ -6,11 +6,11 @@ BallFreeFallScene::BallFreeFallScene() {
     std::cout << "Starting BallFreeFall Scene..." << std::endl;
 }
 
-bool BallFreeFallScene::initialize(GLFWwindow* window) {
+bool BallFreeFallScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     std::cout << "Initializing BallFreeFall Scene..." << std::endl;
     
     // Call base class initialization (sets up camera, shaders, etc.)
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

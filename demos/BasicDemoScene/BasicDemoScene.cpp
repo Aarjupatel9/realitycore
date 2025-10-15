@@ -5,9 +5,9 @@ BasicDemoScene::BasicDemoScene() {
     // Constructor - BaseScene handles most initialization
 }
 
-bool BasicDemoScene::initialize(GLFWwindow* window) {
+bool BasicDemoScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     // Call parent initialize to setup common components
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

@@ -1,4 +1,5 @@
 #include "bullet/BulletWorld.h"
+#include "config/PhysicsConfig.h"
 #include <iostream>
 
 BulletWorld::BulletWorld(const glm::vec3& gravity) 
@@ -8,9 +9,25 @@ BulletWorld::BulletWorld(const glm::vec3& gravity)
     , m_solver(nullptr)
     , m_collisionConfig(nullptr)
     , m_debugDrawEnabled(false)
+    , m_debugPrintInterval(0)
+    , m_updateCount(0)
 {
     InitializeBulletComponents();
     SetGravity(gravity);
+}
+
+BulletWorld::BulletWorld(const PhysicsConfig& config)
+    : m_dynamicsWorld(nullptr)
+    , m_dispatcher(nullptr)
+    , m_broadphase(nullptr)
+    , m_solver(nullptr)
+    , m_collisionConfig(nullptr)
+    , m_debugDrawEnabled(config.enableDebugDraw)
+    , m_debugPrintInterval(config.debugPrintInterval)
+    , m_updateCount(0)
+{
+    InitializeBulletComponents();
+    InitializeWithConfig(config);
 }
 
 BulletWorld::~BulletWorld() {
@@ -33,21 +50,47 @@ void BulletWorld::InitializeBulletComponents() {
     // Create dynamics world
     m_dynamicsWorld = new btDiscreteDynamicsWorld(m_dispatcher, m_broadphase, m_solver, m_collisionConfig);
     
-    // Set default parameters
+    // Set default parameters (will be overridden by config if provided)
     m_dynamicsWorld->setGravity(btVector3(0, -9.81, 0));
     
     // Improve collision resolution with moderate settings
     btContactSolverInfo& solverInfo = m_dynamicsWorld->getSolverInfo();
-    solverInfo.m_numIterations = 50; // Increased iterations for better resolution
-    solverInfo.m_solverMode = SOLVER_SIMD | SOLVER_RANDMIZE_ORDER | SOLVER_USE_WARMSTARTING; // Better solver mode
-    solverInfo.m_splitImpulse = true; // Enable split impulse for better contact resolution
-    solverInfo.m_splitImpulsePenetrationThreshold = -0.002f; // Slight negative threshold retains separation
-    solverInfo.m_erp = 0.2f; // Error reduction parameter
-    solverInfo.m_erp2 = 0.2f; // Error reduction parameter for contact constraints
-    solverInfo.m_globalCfm = 0.0f; // Default CFM
+    solverInfo.m_numIterations = 50;
+    solverInfo.m_solverMode = SOLVER_SIMD | SOLVER_RANDMIZE_ORDER | SOLVER_USE_WARMSTARTING;
+    solverInfo.m_splitImpulse = true;
+    solverInfo.m_splitImpulsePenetrationThreshold = -0.002f;
+    solverInfo.m_erp = 0.2f;
+    solverInfo.m_erp2 = 0.2f;
+    solverInfo.m_globalCfm = 0.0f;
     
     // Set collision margins for better contact detection
     m_dynamicsWorld->getDispatchInfo().m_allowedCcdPenetration = 0.0001f;
+}
+
+void BulletWorld::InitializeWithConfig(const PhysicsConfig& config) {
+    if (!m_dynamicsWorld) {
+        std::cerr << "BulletWorld::InitializeWithConfig: Dynamics world not initialized!" << std::endl;
+        return;
+    }
+    
+    // Set gravity from config
+    SetGravity(config.gravity);
+    
+    // Configure solver parameters
+    btContactSolverInfo& solverInfo = m_dynamicsWorld->getSolverInfo();
+    solverInfo.m_numIterations = config.solverIterations;
+    solverInfo.m_erp = config.erp;
+    solverInfo.m_erp2 = config.erp2;
+    solverInfo.m_globalCfm = config.globalCfm;
+    solverInfo.m_splitImpulse = config.enableSplitImpulse;
+    solverInfo.m_splitImpulsePenetrationThreshold = config.splitImpulseThreshold;
+    solverInfo.m_solverMode = SOLVER_SIMD | SOLVER_RANDMIZE_ORDER | SOLVER_USE_WARMSTARTING;
+    
+    // Set CCD penetration
+    m_dynamicsWorld->getDispatchInfo().m_allowedCcdPenetration = config.ccdPenetration;
+    
+    // Store debug interval
+    m_debugPrintInterval = config.debugPrintInterval;
 }
 
 void BulletWorld::CleanupBulletComponents() {
@@ -83,10 +126,9 @@ void BulletWorld::Update(float deltaTime, int maxSubSteps, float fixedTimeStep) 
         return;
     }
     
-    // Debug: Print deltaTime every 60 calls
-    static int updateCount = 0;
-    updateCount++;
-    if (updateCount % 60 == 0) {
+    // Debug: Print based on config interval
+    m_updateCount++;
+    if (m_debugPrintInterval > 0 && m_updateCount % m_debugPrintInterval == 0) {
         std::cout << "DEBUG: BulletWorld::Update called with deltaTime=" << deltaTime 
                   << ", maxSubSteps=" << maxSubSteps << ", fixedTimeStep=" << fixedTimeStep << std::endl;
         
@@ -184,6 +226,27 @@ void BulletWorld::SetNumTasks(int numThreads) {
     }
     
     m_dynamicsWorld->setNumTasks(numThreads);
+}
+
+void BulletWorld::SetSolverIterations(int iterations) {
+    if (!m_dynamicsWorld) {
+        std::cerr << "BulletWorld::SetSolverIterations: Dynamics world not initialized!" << std::endl;
+        return;
+    }
+    
+    btContactSolverInfo& solverInfo = m_dynamicsWorld->getSolverInfo();
+    solverInfo.m_numIterations = iterations;
+}
+
+void BulletWorld::SetERP(float erp) {
+    if (!m_dynamicsWorld) {
+        std::cerr << "BulletWorld::SetERP: Dynamics world not initialized!" << std::endl;
+        return;
+    }
+    
+    btContactSolverInfo& solverInfo = m_dynamicsWorld->getSolverInfo();
+    solverInfo.m_erp = erp;
+    solverInfo.m_erp2 = erp;  // Set both ERP values
 }
 
 void BulletWorld::HandleCollisions() {

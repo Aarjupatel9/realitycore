@@ -10,9 +10,9 @@ BallCollisionScene::BallCollisionScene()
       m_posDist(-PLANE_SIZE/2.0f + BALL_RADIUS, PLANE_SIZE/2.0f - BALL_RADIUS) {
 }
 
-bool BallCollisionScene::initialize(GLFWwindow* window) {
+bool BallCollisionScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     // Call base class initialization
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

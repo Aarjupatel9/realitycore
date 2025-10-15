@@ -21,7 +21,7 @@ public:
     const char* getName() const override { return "Ball Collision Scene"; }
     const char* getDescription() const override { return "Multiple balls with collisions on a bounded 5x5m plane"; }
     
-    bool initialize(GLFWwindow* window) override;
+    bool initialize(GLFWwindow* window, const SceneConfig& config) override;
     void update(float deltaTime) override;
     void render() override;
     void cleanup() override;

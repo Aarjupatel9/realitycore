@@ -7,9 +7,9 @@ TerrainScene::TerrainScene() {
     m_sunDirection = glm::normalize(glm::vec3(-0.5f, -0.8f, -0.3f));
 }
 
-bool TerrainScene::initialize(GLFWwindow* window) {
+bool TerrainScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     // Call parent initialize to setup common components
-    if (!BaseScene::initialize(window)) {
+    if (!BaseScene::initialize(window, config)) {
         return false;
     }
     

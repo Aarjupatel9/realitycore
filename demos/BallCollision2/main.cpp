@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "BallCollision2Scene.h"
+#include "config/SceneConfig.h"
 
 // Window dimensions
 const unsigned int WINDOW_WIDTH = 800;
@@ -54,9 +55,15 @@ int main() {
     }
     
     try {
+        // Create scene configuration
+        SceneConfig config;
+        config.windowWidth = WINDOW_WIDTH;
+        config.windowHeight = WINDOW_HEIGHT;
+        // Use default values for rendering, camera, and physics
+        
         BallCollision2Scene scene;
         
-        if (!scene.initialize(window)) {
+        if (!scene.initialize(window, config)) {
             std::cerr << "Failed to initialize BallCollision2 Scene" << std::endl;
             glfwTerminate();
             return -1;

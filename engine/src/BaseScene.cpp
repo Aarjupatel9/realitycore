@@ -19,14 +19,24 @@ BaseScene::BaseScene() {
     // Initialize common components
 }
 
-bool BaseScene::initialize(GLFWwindow* window) {
+bool BaseScene::initialize(GLFWwindow* window, const SceneConfig& config) {
     std::cout << "Initializing " << getName() << "..." << std::endl;
     
-    // Store window reference
+    // Store window reference and config
     m_window = window;
+    m_config = config;
     
-    // Setup common components
-    setupCommonComponents(window);
+    // Ensure window dimensions are set
+    if (m_config.windowWidth == 0 || m_config.windowHeight == 0) {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        m_config.windowWidth = static_cast<unsigned int>(width);
+        m_config.windowHeight = static_cast<unsigned int>(height);
+        std::cout << "Window dimensions set from framebuffer: " << width << "x" << height << std::endl;
+    }
+    
+    // Setup common components with config
+    setupCommonComponents(window, m_config);
     
     // Load common meshes
     loadCommonMeshes();
@@ -41,12 +51,12 @@ bool BaseScene::initialize(GLFWwindow* window) {
     return true;
 }
 
-void BaseScene::setupCommonComponents(GLFWwindow* window) {
-    // Create Bullet Physics world
-    m_bulletWorld = std::make_unique<BulletWorld>(glm::vec3(0.0f, -9.81f, 0.0f));
+void BaseScene::setupCommonComponents(GLFWwindow* window, const SceneConfig& config) {
+    // Create Bullet Physics world with config
+    m_bulletWorld = std::make_unique<BulletWorld>(m_config.physics);
     
-    // Create camera
-    m_camera = std::make_unique<Camera>();
+    // Create camera with config
+    m_camera = std::make_unique<Camera>(m_config.camera);
     
     // Create shader
     m_shader = std::make_unique<Shader>();
@@ -364,8 +374,8 @@ void BaseScene::renderObject(const BulletRigidBody& body, glm::vec3 color) {
     // Set uniforms
     m_shader->setUniform("model", model);
     m_shader->setUniform("uColor", color);
-    m_shader->setUniform("lightPos", glm::vec3(10.0f, 10.0f, 10.0f));
-    m_shader->setUniform("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+    m_shader->setUniform("lightPos", m_config.rendering.lightPosition);
+    m_shader->setUniform("lightColor", m_config.rendering.lightColor);
     
     // Render the appropriate mesh
     if (meshToRender) {
@@ -398,16 +408,18 @@ glm::mat4 BaseScene::getViewMatrix() const {
 }
 
 glm::mat4 BaseScene::getProjectionMatrix() const {
+    float aspectRatio = m_config.getAspectRatio();
+    
     // Use camera controller's active camera if available
     if (m_cameraController) {
         Camera* activeCamera = m_cameraController->getActiveCamera();
         if (activeCamera) {
-            return activeCamera->getProjectionMatrix(800.0f/600.0f);
+            return activeCamera->getProjectionMatrix(aspectRatio);
         }
     }
     
     // Fallback to default camera
-    return m_camera ? m_camera->getProjectionMatrix(800.0f/600.0f) : glm::mat4(1.0f);
+    return m_camera ? m_camera->getProjectionMatrix(aspectRatio) : glm::mat4(1.0f);
 }
 
 void BaseScene::update(float deltaTime) {
@@ -488,8 +500,9 @@ void BaseScene::update(float deltaTime) {
 }
 
 void BaseScene::render() {
-    // Clear screen
-    glClearColor(0.5f, 0.8f, 1.0f, 1.0f);
+    // Clear screen with configured background color
+    const glm::vec3& bgColor = m_config.rendering.backgroundColor;
+    glClearColor(bgColor.r, bgColor.g, bgColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // Use shader
@@ -557,4 +570,21 @@ const std::string& BaseScene::getActiveCameraName() const {
     }
     static const std::string defaultName = "Default Camera";
     return defaultName;
+}
+
+// Setter functions for runtime configuration changes
+void BaseScene::setBackgroundColor(const glm::vec3& color) {
+    m_config.rendering.backgroundColor = color;
+}
+
+void BaseScene::setLightPosition(const glm::vec3& pos) {
+    m_config.rendering.lightPosition = pos;
+}
+
+void BaseScene::setLightColor(const glm::vec3& color) {
+    m_config.rendering.lightColor = color;
+}
+
+void BaseScene::setAmbientIntensity(float intensity) {
+    m_config.rendering.ambientIntensity = intensity;
 }
