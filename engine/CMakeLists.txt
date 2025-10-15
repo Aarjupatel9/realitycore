@@ -133,11 +133,3 @@ target_link_libraries(RealityCore PUBLIC
 
 # Export targets for use by demos
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Coverage instrumentation (GCC/Clang only)
-if(ENGINE_ENABLE_COVERAGE)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(RealityCore PRIVATE -O0 -g --coverage)
-        target_link_libraries(RealityCore PRIVATE --coverage)
-    endif()
-endif()

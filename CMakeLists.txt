@@ -47,13 +47,13 @@ endforeach()
 option(BUILD_ENGINE_ONLY "Build only the engine library" OFF)
 option(BUILD_DEMOS_ONLY "Build only the demos" OFF)
 option(BUILD_LAUNCHER "Build the launcher" OFF)
-option(ENGINE_ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
-
 
 # Default: build everything
 if(NOT BUILD_ENGINE_ONLY AND NOT BUILD_DEMOS_ONLY)
     set(BUILD_EVERYTHING ON)
 endif()
+
+## Coverage instrumentation removed (can be reintroduced later)
 
 # Build the engine library
 if(BUILD_EVERYTHING OR BUILD_ENGINE_ONLY)

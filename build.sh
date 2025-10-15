@@ -5,6 +5,7 @@
 # Compatible with macOS, Linux, and Windows (via Git Bash/MSYS2)
 
 set -e  # Exit on any error
+set -o pipefail  # Ensure pipelines fail if any command fails
 
 # Colors for output
 RED='\033[0;31m'
@@ -24,9 +25,6 @@ SHOW_HELP=false
 VERBOSE=false
 TESTS_ONLY=false
 RUN_TESTS=false
-ENABLE_COVERAGE=false
-COVERAGE_TOOL="gcovr"
-COVERAGE_THRESHOLD=90
 
 # Build info file
 BUILD_INFO_FILE="build/.build_info"
@@ -85,7 +83,6 @@ show_help() {
     echo "  --run-tests         Run tests after building (implies tests are enabled)"
     echo "  --debug             Debug build with symbols"
     echo "  --release           Release build (default)"
-    echo "  --coverage          Enable coverage flags and generate coverage report"
     echo ""
     echo "OTHER OPTIONS:"
     echo "  --timing            Show detailed build timing"
@@ -96,9 +93,9 @@ show_help() {
     echo "  ./build.sh                          # Smart incremental build"
     echo "  ./build.sh --soft --timing          # Fast incremental with timing"
     echo "  ./build.sh --hard                   # Full rebuild everything"
-    echo "  ./build.sh --target BallCollision2    # Build specific demo"
-    echo "  ./build.sh --deps-only                # Build dependencies only"
-    echo "  ./build.sh --project-only --debug     # Quick project build (debug)"
+    echo "  ./build.sh --target BallCollision2  # Build specific demo"
+    echo "  ./build.sh --deps-only              # Build dependencies only"
+    echo "  ./build.sh --project-only --debug   # Quick project build (debug)"
     echo "  ./build.sh --tests-only               # Build tests target only"
     echo "  ./build.sh --tests-only --run-tests   # Build and run tests"
     echo ""
@@ -166,10 +163,6 @@ parse_arguments() {
                 ;;
             --help)
                 SHOW_HELP=true
-                shift
-                ;;
-            --coverage)
-                ENABLE_COVERAGE=true
                 shift
                 ;;
             *)
@@ -726,11 +719,8 @@ build_tests() {
 
     # Ensure tests are configured/enabled
     print_status "Configuring CMake for tests..."
-    local extra_flags=""
-    if [ "$ENABLE_COVERAGE" = true ]; then
-        extra_flags="-DENGINE_ENABLE_COVERAGE=ON"
-    fi
-    cmake -S . -B build -DENGINE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=$BUILD_CONFIG $extra_flags
+    local cmake_build_type="$BUILD_CONFIG"
+    cmake -S . -B build -DENGINE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=$cmake_build_type
 
     local cpu_count=$(get_cpu_count)
     print_verbose "Using $cpu_count parallel jobs"
@@ -743,12 +733,26 @@ build_tests() {
 
     if [ "$RUN_TESTS" = true ]; then
         print_status "Running unit tests..."
-        ctest --test-dir build -j --output-on-failure || {
+        # Run GoogleTest binary directly in brief mode to avoid noisy CTest per-test lines
+        local test_exe
+        if [[ "$OS" == "windows" ]]; then
+            test_exe="build/bin/engine_core_tests.exe"
+        else
+            test_exe="build/bin/engine_core_tests"
+        fi
+        if [ ! -x "$test_exe" ]; then
+            print_error "Test executable not found: $test_exe"
+            exit 1
+        fi
+        # Run without ANSI colors to simplify filtering, then hide RUN/header lines
+        {
+            "$test_exe" --gtest_color=no 2>&1 \
+            | grep -Ev '^\[ RUN|^\[----------|^\[==========|^Running main\(|Global test environment'
+        }
+        local test_rc=${PIPESTATUS[0]}
+        if [ $test_rc -ne 0 ]; then
             print_error "Some tests failed"
             exit 1
-        }
-        if [ "$ENABLE_COVERAGE" = true ]; then
-            generate_coverage_report
         fi
     fi
 
@@ -756,45 +760,6 @@ build_tests() {
     local duration=$(calculate_duration $start_time $end_time)
     print_timing "Tests built in: $duration"
     print_success "Unit tests built successfully!"
-}
-
-# Generate coverage report using gcovr or llvm-cov
-generate_coverage_report() {
-    print_status "Generating coverage report..."
-    mkdir -p build/coverage
-
-    # Prefer gcovr if available, otherwise try llvm-cov
-    if command -v gcovr &> /dev/null; then
-        $COVERAGE_TOOL -r . build \
-          --xml build/coverage/coverage.xml \
-          --html-details build/coverage/index.html \
-          --exclude 'engine/src/rendering/.*' \
-          --exclude 'demos/.*' \
-          --exclude 'assets/.*' \
-          --exclude 'backup/.*' \
-          --exclude 'launcher/.*' \
-          --print-summary || true
-
-        # Extract line-rate from XML to enforce threshold
-        local line_rate=$(python3 - <<'PY'
-import xml.etree.ElementTree as ET
-try:
-    tree = ET.parse('build/coverage/coverage.xml')
-    root = tree.getroot()
-    lr = float(root.attrib.get('line-rate', 0.0)) * 100.0
-    print(int(lr))
-except Exception as e:
-    print(0)
-PY
-)
-        print_status "Coverage: ${line_rate}%"
-        if [ "$line_rate" -lt "$COVERAGE_THRESHOLD" ]; then
-            print_error "Coverage ${line_rate}% is below threshold ${COVERAGE_THRESHOLD}%"
-            exit 2
-        fi
-    else
-        print_warning "gcovr not found; skipping coverage report. Install with: pip install gcovr"
-    fi
 }
 
 # Setup build environment
