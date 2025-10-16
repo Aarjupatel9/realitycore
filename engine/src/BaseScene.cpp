@@ -6,6 +6,7 @@
 #include "../src/rendering/Shader.h"
 #include "../src/rendering/Mesh.h"
 #include "../src/rendering/MeshCache.h"
+#include "../src/rendering/MeshLoader.h"
 #include "../src/rendering/FPSRenderer.h"
 #include "../src/core/RigidBody3D.h"
 #include "../src/shapes/Box.h"
@@ -13,6 +14,7 @@
 #include "../src/shapes/Plane.h"
 #include "../src/utils/MeshGenerator.h"
 #include "rendering/camera/CameraController.h"
+#include "GameObject.h"
 #include <iostream>
 
 BaseScene::BaseScene() {
@@ -587,4 +589,149 @@ void BaseScene::setLightColor(const glm::vec3& color) {
 
 void BaseScene::setAmbientIntensity(float intensity) {
     m_config.rendering.ambientIntensity = intensity;
+}
+
+// ============================================================================
+// GameObject Creation Methods
+// ============================================================================
+
+GameObject* BaseScene::createGameObject(const std::string& name) {
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->name = name;
+    
+    GameObject* ptr = gameObject.get();
+    m_gameObjects.push_back(std::move(gameObject));
+    
+    std::cout << "Created GameObject: " << name << std::endl;
+    return ptr;
+}
+
+GameObject* BaseScene::createCustomMeshObject(
+    const std::string& meshPath,
+    glm::vec3 position,
+    glm::vec3 scale,
+    glm::vec3 color,
+    bool enablePhysics,
+    float mass
+) {
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->name = "CustomMeshObject";
+    gameObject->position = position;
+    gameObject->scale = scale;
+    gameObject->color = color;
+    gameObject->visible = true;
+    gameObject->physicsEnabled = enablePhysics;
+    
+    // Load visual mesh from file
+    gameObject->visualMesh = MeshLoader::loadWithNormals(meshPath);
+    if (!gameObject->visualMesh) {
+        std::cerr << "ERROR: Failed to load mesh from " << meshPath << std::endl;
+        return nullptr;
+    }
+    
+    // Create physics body if requested
+    if (enablePhysics && m_bulletWorld) {
+        // For now, use a simple box collision shape
+        // User can replace with custom shape later
+        auto shape = std::make_unique<btBoxShape>(btVector3(scale.x * 0.5f, scale.y * 0.5f, scale.z * 0.5f));
+        auto rigidBody = std::make_unique<BulletRigidBody>(shape.get(), mass, position);
+        
+        m_bulletWorld->AddRigidBody(rigidBody->getBulletRigidBody());
+        gameObject->rigidBody = std::move(rigidBody);
+    }
+    
+    GameObject* ptr = gameObject.get();
+    m_gameObjects.push_back(std::move(gameObject));
+    
+    std::cout << "Created custom mesh object from: " << meshPath << std::endl;
+    return ptr;
+}
+
+GameObject* BaseScene::createBoxObject(
+    glm::vec3 position,
+    glm::vec3 size,
+    glm::vec3 color,
+    bool enablePhysics,
+    float mass
+) {
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->name = "BoxObject";
+    gameObject->position = position;
+    gameObject->scale = size;
+    gameObject->color = color;
+    gameObject->visible = true;
+    gameObject->physicsEnabled = enablePhysics;
+    
+    // Use cached box mesh
+    gameObject->visualMesh = m_boxMesh;
+    
+    // Create physics body if requested
+    if (enablePhysics && m_bulletWorld) {
+        auto shape = std::make_unique<btBoxShape>(btVector3(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f));
+        auto rigidBody = std::make_unique<BulletRigidBody>(shape.get(), mass, position);
+        
+        m_bulletWorld->AddRigidBody(rigidBody->getBulletRigidBody());
+        gameObject->rigidBody = std::move(rigidBody);
+    }
+    
+    GameObject* ptr = gameObject.get();
+    m_gameObjects.push_back(std::move(gameObject));
+    
+    return ptr;
+}
+
+GameObject* BaseScene::createSphereObject(
+    glm::vec3 position,
+    float radius,
+    glm::vec3 color,
+    bool enablePhysics,
+    float mass
+) {
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->name = "SphereObject";
+    gameObject->position = position;
+    gameObject->scale = glm::vec3(radius * 2.0f); // Diameter
+    gameObject->color = color;
+    gameObject->visible = true;
+    gameObject->physicsEnabled = enablePhysics;
+    
+    // Use cached sphere mesh
+    gameObject->visualMesh = m_sphereMesh;
+    
+    // Create physics body if requested
+    if (enablePhysics && m_bulletWorld) {
+        auto shape = std::make_unique<btSphereShape>(radius);
+        auto rigidBody = std::make_unique<BulletRigidBody>(shape.get(), mass, position);
+        
+        m_bulletWorld->AddRigidBody(rigidBody->getBulletRigidBody());
+        gameObject->rigidBody = std::move(rigidBody);
+    }
+    
+    GameObject* ptr = gameObject.get();
+    m_gameObjects.push_back(std::move(gameObject));
+    
+    return ptr;
+}
+
+void BaseScene::renderGameObject(const GameObject& gameObject) {
+    if (!gameObject.visible) return;
+    
+    // Get the appropriate mesh (LOD or direct)
+    auto mesh = gameObject.getVisualMesh(m_camera->getPosition());
+    if (!mesh) return;
+    
+    // Set shader uniforms
+    m_shader->use();
+    m_shader->setUniform("uColor", gameObject.color);
+    m_shader->setUniform("lightPos", m_config.rendering.lightPosition);
+    m_shader->setUniform("lightColor", m_config.rendering.lightColor);
+    m_shader->setUniform("view", getViewMatrix());
+    m_shader->setUniform("projection", getProjectionMatrix());
+    
+    // Set model matrix
+    glm::mat4 model = gameObject.getModelMatrix();
+    m_shader->setUniform("model", model);
+    
+    // Render mesh
+    mesh->draw();
 }

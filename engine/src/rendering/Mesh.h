@@ -12,9 +12,13 @@ public:
     Mesh();
     ~Mesh();
     
-    // Load mesh data
+    // Load mesh data (legacy - positions only)
     void loadVertices(const std::vector<float>& vertices);
     void loadVertices(const std::vector<float>& vertices, const std::vector<unsigned int>& indices);
+    
+    // Load mesh data with custom vertex layout
+    void loadVerticesWithLayout(const std::vector<float>& vertices, bool hasNormals, bool hasUVs);
+    void loadVerticesWithLayout(const std::vector<float>& vertices, const std::vector<unsigned int>& indices, bool hasNormals, bool hasUVs);
     
     // Render the mesh
     void draw() const;
@@ -22,6 +26,10 @@ public:
     // Get vertex count
     size_t getVertexCount() const { return m_vertexCount; }
     size_t getIndexCount() const { return m_indexCount; }
+    
+    // Get mesh properties
+    bool hasNormals() const { return m_hasNormals; }
+    bool hasUVs() const { return m_hasUVs; }
 
 private:
     GLuint m_VAO;
@@ -31,6 +39,9 @@ private:
     size_t m_vertexCount;
     size_t m_indexCount;
     bool m_hasIndices;
+    bool m_hasNormals;
+    bool m_hasUVs;
     
     void cleanup();
+    void setupVertexAttributes(bool hasNormals, bool hasUVs);
 };

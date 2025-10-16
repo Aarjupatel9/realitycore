@@ -82,6 +82,22 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(bullet3)
 
+# Assimp (Asset Importer - for mesh loading)
+FetchContent_Declare(
+  assimp
+  GIT_REPOSITORY https://github.com/assimp/assimp.git
+  GIT_TAG v5.3.1
+)
+# Configure Assimp build options (minimal build)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ZLIB OFF CACHE BOOL "" FORCE)  # Use system zlib on macOS
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(assimp)
+
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 
@@ -118,6 +134,8 @@ target_include_directories(RealityCore PUBLIC
     $<BUILD_INTERFACE:${glm_SOURCE_DIR}>
     $<BUILD_INTERFACE:${glad_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${bullet3_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${assimp_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/deps/assimp-build/include>
 )
 
 # Link libraries
@@ -129,6 +147,7 @@ target_link_libraries(RealityCore PUBLIC
     BulletCollision
     BulletSoftBody
     LinearMath
+    assimp
 )
 
 # Export targets for use by demos

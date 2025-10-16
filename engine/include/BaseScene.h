@@ -15,6 +15,7 @@ class RigidBody3D;
 class FPSRenderer;
 class CameraController;
 struct SceneConfig;
+struct GameObject;
 
 // Include headers for complete type definitions (needed for unique_ptr destructors)
 #include "bullet/BulletWorld.h"
@@ -26,6 +27,7 @@ struct SceneConfig;
 #include "../src/rendering/FPSRenderer.h"
 #include "rendering/camera/CameraController.h"
 #include "config/SceneConfig.h"
+#include "GameObject.h"
 
 /**
  * BaseScene - Base class for all physics scenes
@@ -98,7 +100,7 @@ protected:
     // Window reference
     GLFWwindow* m_window = nullptr;
     
-    // Object creation functions
+    // Legacy object creation functions (for backward compatibility)
     void createBox(glm::vec3 position, 
                    glm::vec3 scale,
                    glm::vec3 rotation = glm::vec3(0.0f),
@@ -119,8 +121,37 @@ protected:
                      glm::vec3 color = glm::vec3(0.3f),
                      bool enablePhysics = false);
     
+    // New GameObject creation functions
+    GameObject* createGameObject(const std::string& name = "GameObject");
+    
+    GameObject* createCustomMeshObject(
+        const std::string& meshPath,
+        glm::vec3 position,
+        glm::vec3 scale = glm::vec3(1.0f),
+        glm::vec3 color = glm::vec3(1.0f),
+        bool enablePhysics = false,
+        float mass = 1.0f
+    );
+    
+    GameObject* createBoxObject(
+        glm::vec3 position,
+        glm::vec3 size,
+        glm::vec3 color = glm::vec3(0.5f),
+        bool enablePhysics = false,
+        float mass = 1.0f
+    );
+    
+    GameObject* createSphereObject(
+        glm::vec3 position,
+        float radius,
+        glm::vec3 color = glm::vec3(0.5f),
+        bool enablePhysics = false,
+        float mass = 1.0f
+    );
+    
     // Rendering functions
     void renderObject(const BulletRigidBody& body, glm::vec3 color);
+    void renderGameObject(const GameObject& gameObject);
     void renderAllObjects();
     
     // Matrix getters
@@ -145,4 +176,7 @@ protected:
     };
     
     std::vector<ObjectInfo> m_objects;
+    
+    // New GameObject storage
+    std::vector<std::unique_ptr<GameObject>> m_gameObjects;
 };
